@@ -146,20 +146,11 @@ def main():
             st.session_state.chat_history.append(("AI", response))
             st.rerun()
 
-        # 상태 변수 초기화
-        if 'show_video' not in st.session_state:
-            st.session_state.show_video = False
-
         if end_debate_button:
             st.session_state.evaluation_result = st.session_state.debate_bot.evaluate_debate(st.session_state.chat_history)
-            if topic_options == "비질란테":
-                st.session_state.show_video = True
 
-        # 비디오 표시 로직
-        if st.session_state.show_video:
-            st.markdown("이 영상을 참고해보세요.")
-            st.video("https://www.youtube.com/results?search_query=%EC%A3%84%EC%99%80%EB%B2%8C+%EC%A4%84%EA%B1%B0%EB%A6%AC+%EC%9A%94%EC%95%BD")
-            st.rerun()
+
+
 
     # 평가 결과 표시
     if st.session_state.evaluation_result:
@@ -175,6 +166,20 @@ def main():
                 st.markdown(f"- 개선방안: {result[key]['개선방안']}")
         else:
             st.error("평가 결과를 처리하는 중 오류가 발생했습니다. 다시 시도해 주세요.")
+
+        # 죄와벌 비디오 표시 로직
+        if selected_topic == "비질란테":
+            st.markdown("")
+            st.markdown("")
+            st.markdown("이 영상을 참고해보세요.")
+            st.video("https://youtu.be/sXkKd88gdL0?si=q0g41YeWA1gbeZu0")
+
+        # 멋진 신세계 비디오 표시 로직
+        if selected_topic == "가상세계":
+            st.markdown("")
+            st.markdown("")
+            st.markdown("이 영상을 참고해보세요.")
+            st.video("https://youtu.be/BQ-u_w9-IWg?si=Ln9NgvLQpdVHwRo8")
 
 if __name__ == "__main__":
     main()
