@@ -66,7 +66,7 @@ def main():
         """
         <style>
         .main {
-            background-color: #1C1C1C;
+            background-color: white;
         }
         </style>
         """,
@@ -74,12 +74,12 @@ def main():
     )
     
     st.markdown(
-        """
-        <div style="text-align: center; color: #FFD700;">
-            <h1>토독토독</h1>
-        </div>
-        """, 
-        unsafe_allow_html=True
+    """
+    <div style="text-align: center;">
+        <h1 style="color: #0184FF;">토독토독</h1>
+    </div>
+    """, 
+    unsafe_allow_html=True
     )
 
     st.markdown(
@@ -93,13 +93,13 @@ def main():
             box-shadow: 0px 2px 12px rgba(255, 255, 255, 0.1);
         }
         .stButton > button {
-            background-color: #FFD700;
+            background-color: white;
             color: black;
             border-radius: 20px;
-            box-shadow: 0px 2px 12px rgba(255, 215, 0, 0.5);
+            box-shadow: 0px 2px 12px rgba(232, 232, 232, 0.5);
         }
         .stButton > button:hover {
-            background-color: #FFC300;
+            background-color: #F1F1F1;
             color: black;
         }
         </style>
@@ -110,7 +110,7 @@ def main():
 
     # 캐릭터 선택
     char_options = [char['char_type'] for char in st.session_state.debate_bot.debate_characters['characters']]
-    selected_char = st.selectbox("함께 토론할 캐릭터를 선택해주세요:", char_options)
+    selected_char = st.selectbox("토론 상대의 말투를 선택해주세요:", char_options)
 
     # 토론 주제 선택
     topic_options = [topic['keyword'] for topic in st.session_state.debate_bot.debate_topics]
@@ -124,7 +124,7 @@ def main():
         st.session_state.debate_started = True
         st.session_state.chat_history = []
         st.session_state.evaluation_result = None
-        st.experimental_rerun()
+        st.rerun()
 
     if st.session_state.get('debate_started', False):
         # 채팅 히스토리 표시
@@ -144,11 +144,22 @@ def main():
             st.session_state.chat_history.append(("You", user_input))
             response = st.session_state.debate_bot.chat(user_input)
             st.session_state.chat_history.append(("AI", response))
-            st.experimental_rerun()
+            st.rerun()
+
+        # 상태 변수 초기화
+        if 'show_video' not in st.session_state:
+            st.session_state.show_video = False
 
         if end_debate_button:
             st.session_state.evaluation_result = st.session_state.debate_bot.evaluate_debate(st.session_state.chat_history)
-            st.experimental_rerun()
+            if topic_options == "비질란테":
+                st.session_state.show_video = True
+
+        # 비디오 표시 로직
+        if st.session_state.show_video:
+            st.markdown("이 영상을 참고해보세요.")
+            st.video("https://www.youtube.com/results?search_query=%EC%A3%84%EC%99%80%EB%B2%8C+%EC%A4%84%EA%B1%B0%EB%A6%AC+%EC%9A%94%EC%95%BD")
+            st.rerun()
 
     # 평가 결과 표시
     if st.session_state.evaluation_result:
