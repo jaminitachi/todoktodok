@@ -1,6 +1,10 @@
 import json
 from anthropic import Anthropic
+import logging
 
+# 로깅 설정
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class DebateBot:
     def __init__(self, api_key):
@@ -21,17 +25,28 @@ class DebateBot:
         """
 
     def load_data(self):
-        with open('debate_topics.json', 'r', encoding='utf-8') as f:
-            self.debate_topics = json.load(f)
-        with open('characters.json', 'r', encoding='utf-8') as f:
-            self.debate_characters = json.load(f)
+        try:
+            with open('debate_topics.json', 'r', encoding='utf-8') as f:
+                self.debate_topics = json.load(f)
+            with open('characters.json', 'r', encoding='utf-8') as f:
+                self.debate_characters = json.load(f)
+        except FileNotFoundError as e:
+            logger.error(f"파일을 찾을 수 없습니다: {e}")
+            raise
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON 파일 파싱 오류: {e}")
+            raise
 
     def start_debate(self, selected_char, selected_topic, user_stance):
-        self.selected_char = next(char for char in self.debate_characters['characters'] if char['char_type'] == selected_char)
-        self.selected_topic = next(topic for topic in self.debate_topics if topic['keyword'] == selected_topic)
-        self.user_stance = user_stance
-        self.ai_stance = "반대" if user_stance == "찬성" else "찬성"
-        self.messages = []  # Reset messages for new debate
+        try:
+            self.selected_char = next(char for char in self.debate_characters['characters'] if char['char_type'] == selected_char)
+            self.selected_topic = next(topic for topic in self.debate_topics if topic['keyword'] == selected_topic)
+            self.user_stance = user_stance
+            self.ai_stance = "반대" if user_stance == "찬성" else "찬성"
+            self.messages = []  # Reset messages for new debate
+        except StopIteration:
+            logger.error(f"선택한 캐릭터 또는 토픽을 찾을 수 없습니다: {selected_char}, {selected_topic}")
+            raise ValueError("Invalid character or topic selection")
 
     def generate_initial_prompt(self):
         ai_role = self.selected_topic['stances'][self.ai_stance]
@@ -51,103 +66,88 @@ class DebateBot:
         {ai_role}에서, 길게 말하기보다는, 주장과 근거가 담긴 한문단 정도로 간결하게 반말로 답하세요. 앞서 말한 주장을 계속하여 반복하지 마세요.
         """
 
-    def evaluate_debate(self, chat_history):
-        # chat_history의 구조를 로깅
-        print("Chat history structure:", chat_history)
-
-        # chat_history가 리스트가 아니거나 비어있으면 오류 처리
-        if not isinstance(chat_history, list) or not chat_history:
-            return {
-                "error": "Chat history is empty or not in the correct format.",
-                "총점": 0
-            }
-
-        # chat_history의 첫 번째 항목 구조 확인
-        first_item = chat_history[0]
-        if isinstance(first_item, tuple) and len(first_item) == 2:
-            # (sender, msg) 형식인 경우
-            full_chat = "\n".join([f"{sender}: {msg}" for sender, msg in chat_history])
-            user_messages = [msg for sender, msg in chat_history if sender == "You"]
-        elif isinstance(first_item, str):
-            # 메시지만 있는 경우
-            full_chat = "\n".join(chat_history)
-            user_messages = chat_history  # 모든 메시지를 사용자 메시지로 간주
-        else:
-            # 예상치 못한 형식
-            return {
-                "error": "Chat history is in an unexpected format.",
-                "총점": 0
-            }
-
-        user_chat = "\n".join(user_messages)
-        
-        # 평가를 위한 프롬프트 생성
-        evaluation_prompt = f"""
-        당신은 토론대회의 심판자입니다.
-        다음은 전체 토론 대화 내용입니다:
-        {full_chat}
-
-        그리고 다음은 사용자("You")가 한 발언들입니다:
-        {user_chat}
-
-        사용자의 발언들에 대해서만 다음 기준에 따라 평가해 주세요:
-        1. 주제의 일관성(0-20) : 발언들이 주제에 부합하고 일관성이 있는가?
-        2. 논리적 연결성(0-20) : 발언들의 흐름과 논리적 연결성이 잘 유지되었는가?
-        3. 반박의 적절성(0-20) : 상대방의 주장을 이해하고 적절히 반박하였는가?
-        4. 근거의 타당성(0-20) : 주장에 대한 근거가 충분히 타당하고 논리적인가?
-        5. 언어 선택의 적절성(0-20) : 발언 과정에서 적절한 언어가 사용되었는가?
-
-        각 항목을 20점 만점으로 평가하고, 점수와 함께 간단한 코멘트와 개선을 위한 구체적인 조언을 제시해 주세요.
-        개선 방안에서는 사용자가 실제로 말한 문장을 제시하고, 어떻게 바꾸면 더 나은 점수를 받을 수 있는지 구체적으로 설명해 주세요.
-        마지막에는 총점(100점 만점)을 제시해 주세요.
-
-        반드시 아래의 json형식으로 반환해 주세요:
-        {{
-            "주제의 일관성": {{"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"}},
-            "논리적 연결성": {{"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"}},
-            "반박의 적절성": {{"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"}},
-            "근거의 타당성": {{"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"}},
-            "언어 선택의 적절성": {{"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"}},
-            "총점": 0-100
-        }}
-        """
-
-        # API 요청 보내기
-        response = self.client.messages.create(
-            model="claude-3-sonnet-20240229",
-            max_tokens=1000,
-            messages=[{"role": "user", "content": evaluation_prompt}]
-        )
-
-        # 응답에서 텍스트 추출 및 JSON 파싱
-        response_text = response.content[0].text
-
+    def chat(self, user_input):
         try:
+            analysis_prompt = self.generate_analysis_prompt(user_input)
+            self.messages.append({"role": "user", "content": analysis_prompt})
+
+            chat_messages = [msg for msg in self.messages if msg["role"] != "system"]
+
+            
+            response = self.client.messages.create(
+                model="claude-3-sonnet-20240229",
+                max_tokens=500,
+                messages=chat_messages,
+                system=self.generate_initial_prompt(),
+            )
+
+            assistant_message = response.content[0].text
+            self.messages.append({"role": "assistant", "content": assistant_message})
+
+            # AI의 답변만 반환
+            return assistant_message
+        except Exception as e:
+            logger.error(f"채팅 생성 중 오류 발생: {e}")
+            return "죄송합니다. 대화 생성 중 오류가 발생했습니다."
+
+    def evaluate_debate(self, chat_history):
+        try:
+            full_chat = "\n".join([f"{'You' if 'user' in msg else 'AI'}: {msg.get('user', msg.get('ai', ''))}" for msg in chat_history])
+            user_messages = [msg['user'] for msg in chat_history if 'user' in msg]
+            user_chat = "\n".join(user_messages)
+            
+            evaluation_prompt = f"""
+            당신은 토론대회의 심판자입니다.
+            다음은 전체 토론 대화 내용입니다:
+            {full_chat}
+
+            그리고 다음은 사용자("You")가 한 발언들입니다:
+            {user_chat}
+
+            사용자의 발언들에 대해서만 다음 기준에 따라 평가해 주세요:
+            1. 주제의 일관성(0-20) : 발언들이 주제에 부합하고 일관성이 있는가?
+            2. 논리적 연결성(0-20) : 발언들의 흐름과 논리적 연결성이 잘 유지되었는가?
+            3. 반박의 적절성(0-20) : 상대방의 주장을 이해하고 적절히 반박하였는가?
+            4. 근거의 타당성(0-20) : 주장에 대한 근거가 충분히 타당하고 논리적인가?
+            5. 언어 선택의 적절성(0-20) : 발언 과정에서 적절한 언어가 사용되었는가?
+
+            각 항목을 20점 만점으로 평가하고, 점수와 함께 간단한 코멘트와 개선을 위한 구체적인 조언을 제시해 주세요.
+            개선 방안에서는 사용자가 실제로 말한 문장을 제시하고, 어떻게 바꾸면 더 나은 점수를 받을 수 있는지 구체적으로 설명해 주세요.
+            마지막에는 총점(100점 만점)을 제시해 주세요.
+
+            반드시 아래의 json형식으로 반환해 주세요:
+            {{
+                "주제의 일관성": {{"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"}},
+                "논리적 연결성": {{"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"}},
+                "반박의 적절성": {{"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"}},
+                "근거의 타당성": {{"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"}},
+                "언어 선택의 적절성": {{"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"}},
+                "총점": 0-100
+            }}
+            """
+
+            response = self.client.messages.create(
+                model="claude-3-sonnet-20240229",
+                max_tokens=1000,
+                messages=[{"role": "user", "content": evaluation_prompt}]
+            )
+
+            response_text = response.content[0].text
+            logger.info(f"AI response: {response_text}")
+
             evaluation_result = json.loads(response_text)
             return evaluation_result
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON 파싱 오류: {e}")
+            logger.error(f"파싱 실패한 텍스트: {response_text}")
             return {
                 "error": "Failed to parse JSON response",
+                "raw_response": response_text,
                 "총점": 0
             }
-
-
-
-
-    def chat(self, user_input):
-        analysis_prompt = self.generate_analysis_prompt(user_input)
-        self.messages.append({"role": "user", "content": analysis_prompt})
-
-        chat_messages = [msg for msg in self.messages if msg["role"] != "system"]
-
-        response = self.client.messages.create(
-            model="claude-3-sonnet-20240229",
-            max_tokens=500,
-            messages=chat_messages,
-            system=self.generate_initial_prompt(),
-        )
-
-        assistant_message = response.content[0].text
-        self.messages.append({"role": "assistant", "content": assistant_message})
-
-        return assistant_message
+        except Exception as e:
+            logger.error(f"평가 중 오류 발생: {e}")
+            return {
+                "error": f"An error occurred during evaluation: {str(e)}",
+                "총점": 0
+            }
