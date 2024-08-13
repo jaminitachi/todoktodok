@@ -1,6 +1,7 @@
 import json
 from anthropic import Anthropic
 
+
 class DebateBot:
     def __init__(self, api_key):
         self.client = Anthropic(api_key=api_key)
@@ -97,7 +98,6 @@ class DebateBot:
 
         # 응답 텍스트 확인 (로그로 출력하거나 Streamlit에서 출력)
         print("응답 텍스트:", response_text)
-        st.write("응답 텍스트:", response_text)
 
         try:
             evaluation_result = json.loads(response_text)
