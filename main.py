@@ -51,9 +51,13 @@ class DebateBot:
         """
 
     def evaluate_debate(self, chat_history):
-        # 대화 전체를 하나의 텍스트로 결합
-        user_chat = "\n".join([f"{sender}: {msg}" for sender, msg in chat_history])
+        # chat_history에서 사용자의 발언만 추출
+        user_messages = [msg[1] for msg in chat_history if msg[0] == "You"]
+        
+        # 사용자 발언들을 하나의 텍스트로 결합
+        user_chat = "\n".join(user_messages)
 
+        # 평가를 위한 프롬프트 생성
         evaluation_prompt = f"""
         다음은 사용자가 참여한 토론 대화에서 "사용자"가 한 발언들입니다:
         {user_chat}
@@ -69,8 +73,7 @@ class DebateBot:
         개선 방안에서는 "사용자"가 실제로 말한 문장을 제시하고, 어떻게 바꾸면 더 나은 점수를 받을 수 있는지 구체적으로 설명해 주세요.
         마지막에는 총점(100점 만점)을 제시해 주세요.
 
-
-        반드시 아래 형식으로 JSON으로 반환해 주세요:
+        "반드시 아래의 json형식으로 반환해 주세요."
         {{
             "주제의 일관성": {{"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"}},
             "논리적 연결성": {{"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"}},
@@ -81,14 +84,15 @@ class DebateBot:
         }}
         """
 
+        # API 요청 보내기 (예제)
         response = self.client.messages.create(
             model="claude-3-sonnet-20240229",
             max_tokens=1000,
             messages=[{"role": "user", "content": evaluation_prompt}]
         )
 
-        response_text = response.content[0].text  # 또는 response.content[0].text, 필요에 따라 수정
-        print(response_text)
+        # 응답에서 텍스트 추출 및 JSON 파싱
+        response_text = response.content[0].text
 
         try:
             evaluation_result = json.loads(response_text)
@@ -102,6 +106,7 @@ class DebateBot:
                 "언어 선택의 적절성": {"점수": 0, "코멘트": "JSON 파싱 실패", "개선방안": "JSON 형식을 확인해 주세요."},
                 "총점": 0
             }
+
 
 
     def chat(self, user_input):
