@@ -87,7 +87,7 @@ class DebateBot:
 
         # API 요청 보내기 (예제)
         response = self.client.messages.create(
-            model="claude-3-sonnet-20240229",
+            model="claude-3-5-sonnet-20240620",
             max_tokens=1000,
             messages=[{"role": "user", "content": evaluation_prompt}]
         )
