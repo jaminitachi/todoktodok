@@ -185,14 +185,14 @@ def main():
             st.rerun()
 
         if end_debate_button:
-            # 사용자 발언만 필터링
-            user_messages = [msg for sender, msg in st.session_state.chat_history if sender == "You"]
+            # chat_history의 구조를 로깅
+            print("Chat history before evaluation:", st.session_state.chat_history)
             
-            # 사용자 발언만 평가
-            st.session_state.evaluation_result = st.session_state.debate_bot.evaluate_debate(user_messages)
+            st.session_state.evaluation_result = st.session_state.debate_bot.evaluate_debate(st.session_state.chat_history)
+            if "error" in st.session_state.evaluation_result:
+                st.error(f"평가 중 오류 발생: {st.session_state.evaluation_result['error']}")
             st.session_state.debate_started = False
             st.rerun()
-
     # 평가 결과 표시
     if st.session_state.evaluation_result:
         result = st.session_state.evaluation_result

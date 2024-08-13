@@ -52,11 +52,33 @@ class DebateBot:
         """
 
     def evaluate_debate(self, chat_history):
-        # 전체 대화 내용을 하나의 문자열로 결합
-        full_chat = "\n".join([f"{sender}: {msg}" for sender, msg in chat_history])
-        
-        # 사용자의 발언만 추출
-        user_messages = [msg for sender, msg in chat_history if sender == "You"]
+        # chat_history의 구조를 로깅
+        print("Chat history structure:", chat_history)
+
+        # chat_history가 리스트가 아니거나 비어있으면 오류 처리
+        if not isinstance(chat_history, list) or not chat_history:
+            return {
+                "error": "Chat history is empty or not in the correct format.",
+                "총점": 0
+            }
+
+        # chat_history의 첫 번째 항목 구조 확인
+        first_item = chat_history[0]
+        if isinstance(first_item, tuple) and len(first_item) == 2:
+            # (sender, msg) 형식인 경우
+            full_chat = "\n".join([f"{sender}: {msg}" for sender, msg in chat_history])
+            user_messages = [msg for sender, msg in chat_history if sender == "You"]
+        elif isinstance(first_item, str):
+            # 메시지만 있는 경우
+            full_chat = "\n".join(chat_history)
+            user_messages = chat_history  # 모든 메시지를 사용자 메시지로 간주
+        else:
+            # 예상치 못한 형식
+            return {
+                "error": "Chat history is in an unexpected format.",
+                "총점": 0
+            }
+
         user_chat = "\n".join(user_messages)
         
         # 평가를 위한 프롬프트 생성
@@ -80,14 +102,14 @@ class DebateBot:
         마지막에는 총점(100점 만점)을 제시해 주세요.
 
         반드시 아래의 json형식으로 반환해 주세요:
-        {
-            "주제의 일관성": {"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"},
-            "논리적 연결성": {"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"},
-            "반박의 적절성": {"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"},
-            "근거의 타당성": {"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"},
-            "언어 선택의 적절성": {"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"},
+        {{
+            "주제의 일관성": {{"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"}},
+            "논리적 연결성": {{"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"}},
+            "반박의 적절성": {{"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"}},
+            "근거의 타당성": {{"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"}},
+            "언어 선택의 적절성": {{"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"}},
             "총점": 0-100
-        }
+        }}
         """
 
         # API 요청 보내기
@@ -105,11 +127,7 @@ class DebateBot:
             return evaluation_result
         except json.JSONDecodeError:
             return {
-                "주제의 일관성": {"점수": 0, "코멘트": "JSON 파싱 실패", "개선방안": "JSON 형식을 확인해 주세요."},
-                "논리적 연결성": {"점수": 0, "코멘트": "JSON 파싱 실패", "개선방안": "JSON 형식을 확인해 주세요."},
-                "반박의 적절성": {"점수": 0, "코멘트": "JSON 파싱 실패", "개선방안": "JSON 형식을 확인해 주세요."},
-                "근거의 타당성": {"점수": 0, "코멘트": "JSON 파싱 실패", "개선방안": "JSON 형식을 확인해 주세요."},
-                "언어 선택의 적절성": {"점수": 0, "코멘트": "JSON 파싱 실패", "개선방안": "JSON 형식을 확인해 주세요."},
+                "error": "Failed to parse JSON response",
                 "총점": 0
             }
 
