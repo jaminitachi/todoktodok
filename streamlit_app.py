@@ -189,7 +189,18 @@ def main():
             user_messages = [msg for sender, msg in st.session_state.chat_history if sender == "You"]
             
             # 사용자 발언만 평가
-            st.session_state.evaluation_result = st.session_state.debate_bot.evaluate_debate(user_messages)
+            response_text = st.session_state.debate_bot.evaluate_debate(user_messages)
+            
+            # response_text를 Streamlit UI에 출력
+            st.subheader("응답 텍스트")
+            st.text(response_text)  # response_text를 그대로 출력
+            
+            try:
+                # JSON 파싱 후 평가 결과로 저장
+                st.session_state.evaluation_result = json.loads(response_text)
+            except json.JSONDecodeError:
+                st.error("응답 텍스트를 JSON으로 파싱하는 중 오류가 발생했습니다.")
+            
             st.session_state.debate_started = False
             st.rerun()
 

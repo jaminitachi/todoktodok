@@ -96,21 +96,8 @@ class DebateBot:
         # 응답에서 텍스트 추출 및 JSON 파싱
         response_text = response.content[0].text
 
-        # 응답 텍스트 확인 (로그로 출력하거나 Streamlit에서 출력)
-        print("응답 텍스트:", response_text)
+        return response_text  # 이 줄을 추가
 
-        try:
-            evaluation_result = json.loads(response_text)
-            return evaluation_result
-        except json.JSONDecodeError:
-            return {
-                "주제의 일관성": {"점수": 0, "코멘트": "JSON 파싱 실패", "개선방안": "JSON 형식을 확인해 주세요."},
-                "논리적 연결성": {"점수": 0, "코멘트": "JSON 파싱 실패", "개선방안": "JSON 형식을 확인해 주세요."},
-                "반박의 적절성": {"점수": 0, "코멘트": "JSON 파싱 실패", "개선방안": "JSON 형식을 확인해 주세요."},
-                "근거의 타당성": {"점수": 0, "코멘트": "JSON 파싱 실패", "개선방안": "JSON 형식을 확인해 주세요."},
-                "언어 선택의 적절성": {"점수": 0, "코멘트": "JSON 파싱 실패", "개선방안": "JSON 형식을 확인해 주세요."},
-                "총점": 0
-            }
 
 
 
