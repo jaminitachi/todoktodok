@@ -67,7 +67,7 @@ class DebateBot:
         {ai_role}에서, 길게 말하기보다는, 주장과 근거가 담긴 한문단 정도로 간결하게 반말로 답하세요. 앞서 말한 주장을 계속하여 반복하지 마세요.
         """
 
-    def chat_stream(self, user_input):
+    def chat_stream(self, user_input):  # stream
         try:
             analysis_prompt = self.generate_analysis_prompt(user_input)
             self.messages.append({"role": "user", "content": analysis_prompt})

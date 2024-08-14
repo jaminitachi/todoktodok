@@ -156,7 +156,7 @@ def main():
                     st.markdown(display_message("AI", chat['ai']), unsafe_allow_html=True)
 
         # 채팅 인터페이스
-        with st.form(key='chat_form'):
+        with st.form(key='chat_form', clear_on_submit=True):    # clear
             user_input = st.text_input("당신의 의견을 입력하세요:", key="user_input")
             col1, col2 = st.columns([1, 1])
             
