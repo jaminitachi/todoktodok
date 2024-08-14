@@ -129,14 +129,14 @@ class DebateBot:
             마지막에는 총점(100점 만점)을 제시해 주세요.
     
             반드시 아래의 json형식으로 반환해 주세요:
-            {
-                "주제의 일관성": {"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"},
-                "논리적 연결성": {"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"},
-                "반박의 적절성": {"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"},
-                "근거의 타당성": {"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"},
-                "언어 선택의 적절성": {"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"},
+            {{
+                "주제의 일관성": {{"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"}},
+                "논리적 연결성": {{"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"}},
+                "반박의 적절성": {{"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"}},
+                "근거의 타당성": {{"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"}},
+                "언어 선택의 적절성": {{"점수": 점수, "코멘트": "코멘트", "개선방안": "개선을 위한 조언"}},
                 "총점": 0-100
-            }
+            }}
             """
     
             response = self.client.messages.create(
@@ -148,7 +148,19 @@ class DebateBot:
             response_text = response.content[0].text
             logger.info(f"AI response: {response_text}")
     
-            evaluation_result = json.loads(response_text)
+            # JSON 형식 검증 및 수정
+            try:
+                evaluation_result = json.loads(response_text)
+            except json.JSONDecodeError:
+                # JSON 파싱에 실패한 경우, 텍스트에서 JSON 부분만 추출
+                json_start = response_text.find('{')
+                json_end = response_text.rfind('}') + 1
+                if json_start != -1 and json_end != -1:
+                    json_text = response_text[json_start:json_end]
+                    evaluation_result = json.loads(json_text)
+                else:
+                    raise ValueError("유효한 JSON을 찾을 수 없습니다.")
+    
             return evaluation_result
         except json.JSONDecodeError as e:
             logger.error(f"JSON 파싱 오류: {e}")
