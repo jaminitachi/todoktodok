@@ -69,6 +69,7 @@ def display_message(sender, message):
         <div style="clear: both;"></div>
         '''
 
+
 def main():
     st.markdown(
         """
@@ -147,6 +148,7 @@ def main():
                 )
 
         # 채팅 히스토리 표시
+
         chat_history = st.container()
         with chat_history:
             for chat in st.session_state.chat_history:
@@ -155,10 +157,12 @@ def main():
                 if chat['ai']:
                     st.markdown(display_message("AI", chat['ai']), unsafe_allow_html=True)
 
+
         # 채팅 인터페이스
         with st.form(key='chat_form', clear_on_submit=True):    # clear
             user_input = st.text_input("당신의 의견을 입력하세요:", key="user_input")
             col1, col2 = st.columns([1, 1])
+
             
             with col1:
                 submit_button = st.form_submit_button("전송")
@@ -188,6 +192,7 @@ def main():
                     st.warning("서버가 현재 과부하 상태입니다. 잠시 후 다시 시도해 주세요.")
             
             st.rerun()
+
 
         if end_debate_button:
             logger.info(f"Chat history before evaluation: {st.session_state.chat_history}")

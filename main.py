@@ -1,7 +1,9 @@
 import json
 from anthropic import Anthropic
 import logging
+
 import streamlit as st
+
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -67,12 +69,14 @@ class DebateBot:
         {ai_role}에서, 길게 말하기보다는, 주장과 근거가 담긴 한문단 정도로 간결하게 반말로 답하세요. 앞서 말한 주장을 계속하여 반복하지 마세요.
         """
 
+
     def chat_stream(self, user_input):  # stream
         try:
             analysis_prompt = self.generate_analysis_prompt(user_input)
             self.messages.append({"role": "user", "content": analysis_prompt})
 
             chat_messages = [msg for msg in self.messages if msg["role"] != "system"]
+
 
             stream = self.client.messages.create(
                 model="claude-3-sonnet-20240229",
@@ -98,7 +102,7 @@ class DebateBot:
         except Exception as e:
             logger.error(f"채팅 생성 중 오류 발생: {e}")
             return "죄송합니다. 대화 생성 중 오류가 발생했습니다."
-
+          
     def evaluate_debate(self, chat_history):
         try:
             full_chat = "\n".join([f"{'You' if 'user' in msg else 'AI'}: {msg.get('user', msg.get('ai', ''))}" for msg in chat_history])
