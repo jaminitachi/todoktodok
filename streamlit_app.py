@@ -33,42 +33,42 @@ if 'debate_started' not in st.session_state:
 
 def display_message(sender, message):
     if sender == "You":
-        st.markdown(
-            f'''
-            <div style="
-                background-color: #007BFF; 
-                color: white; 
-                padding: 10px; 
-                border-radius: 20px; 
-                margin: 5px 0; 
-                max-width: 70%; 
-                float: right; 
-                clear: both; 
-                word-wrap: break-word;
-                box-shadow: 0px 2px 12px rgba(0, 123, 255, 0.5);
-            ">
-                {message}
-            </div>
-            ''', unsafe_allow_html=True)
+        return f'''
+        <div style="
+            background-color: #007BFF; 
+            color: white; 
+            padding: 10px; 
+            border-radius: 20px; 
+            margin: 5px 0; 
+            max-width: 70%; 
+            float: right; 
+            clear: both; 
+            word-wrap: break-word;
+            box-shadow: 0px 2px 12px rgba(0, 123, 255, 0.5);
+        ">
+            {message}
+        </div>
+        <div style="clear: both;"></div>
+        '''
     else:
-        st.markdown(
-            f'''
-            <div style="
-                background-color: #F1F1F1; 
-                color: black; 
-                padding: 10px; 
-                border-radius: 20px; 
-                margin: 5px 0; 
-                max-width: 70%; 
-                float: left; 
-                clear: both; 
-                word-wrap: break-word;
-                box-shadow: 0px 2px 12px rgba(0, 0, 0, 0.1);
-            ">
-                {message}
-            </div>
-            ''', unsafe_allow_html=True)
-    st.markdown('<div style="clear: both;"></div>', unsafe_allow_html=True)
+        return f'''
+        <div style="
+            background-color: #F1F1F1; 
+            color: black; 
+            padding: 10px; 
+            border-radius: 20px; 
+            margin: 5px 0; 
+            max-width: 70%; 
+            float: left; 
+            clear: both; 
+            word-wrap: break-word;
+            box-shadow: 0px 2px 12px rgba(0, 0, 0, 0.1);
+        ">
+            {message}
+        </div>
+        <div style="clear: both;"></div>
+        '''
+
 
 def main():
     st.markdown(
@@ -148,28 +148,51 @@ def main():
                 )
 
         # 채팅 히스토리 표시
-        for message in st.session_state.chat_history:
-            display_message("You", message['user'])
-            display_message("AI", message['ai'])
+
+        chat_history = st.container()
+        with chat_history:
+            for chat in st.session_state.chat_history:
+                if chat['user']:
+                    st.markdown(display_message("You", chat['user']), unsafe_allow_html=True)
+                if chat['ai']:
+                    st.markdown(display_message("AI", chat['ai']), unsafe_allow_html=True)
+
 
         # 채팅 인터페이스
-        with st.form(key='chat_form'):
+        with st.form(key='chat_form', clear_on_submit=True):    # clear
             user_input = st.text_input("당신의 의견을 입력하세요:", key="user_input")
             col1, col2 = st.columns([1, 1])
 
+            
             with col1:
                 submit_button = st.form_submit_button("전송")
-
+            
             with col2:
                 end_debate_button = st.form_submit_button("토론 종료")
 
-        if submit_button and user_input:
+        if submit_button and user_input.strip():
+            st.session_state.chat_history.append({"user": user_input, "ai": ""})
+            chat_history.markdown(display_message("You", user_input), unsafe_allow_html=True)
+            
+            # AI 응답을 위한 빈 컨테이너 생성
+            ai_response_container = chat_history.empty()
+            
             try:
-                ai_response = st.session_state.debate_bot.chat(user_input)
-                st.session_state.chat_history.append({"user": user_input, "ai": ai_response})
-                st.rerun()
+                ai_response = ""
+                for chunk in st.session_state.debate_bot.chat_stream(user_input):
+                    ai_response += chunk
+                    # AI 응답을 실시간으로 업데이트
+                    ai_response_container.markdown(display_message("AI", ai_response), unsafe_allow_html=True)
+                
+                # 최종 AI 응답을 chat_history에 저장
+                st.session_state.chat_history[-1]["ai"] = ai_response
             except Exception as e:
                 st.error(f"대화 생성 중 오류가 발생했습니다: {e}")
+                if "overloaded_error" in str(e):
+                    st.warning("서버가 현재 과부하 상태입니다. 잠시 후 다시 시도해 주세요.")
+            
+            st.rerun()
+
 
         if end_debate_button:
             logger.info(f"Chat history before evaluation: {st.session_state.chat_history}")
